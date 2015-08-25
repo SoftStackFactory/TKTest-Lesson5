@@ -224,7 +224,7 @@ TKAnswersService, ServerAnswersService, $ionicHistory, TKResultsButtonService) {
             TKAnswersService.setLastQuestionNumber(lastQuestionNumber-1);
             TKAnswersService.eraseLastAnswer();
         }
-        TKAnswersService.setLastQuestionNumber(qNumber);
+        TKAnswersService.setLastQuestionNumber(parseInt(qNumber));
     });
     
     testInfo.forEach(function(infoDict)
