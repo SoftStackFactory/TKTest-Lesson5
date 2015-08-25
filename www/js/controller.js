@@ -3,6 +3,21 @@ angular.module('starter.controllers', [])
 .controller('LoginCtrl',['$scope', '$state', 'UserService', '$ionicHistory', '$window',
 function($scope, $state, UserService, $ionicHistory, $window) {
     $scope.user = {};
+    
+    var rememberMeValue;
+    if($window.localStorage["rememberMe"] === undefined || $window.localStorage["rememberMe"] == "true") {
+        rememberMeValue = true;
+    }else {
+        rememberMeValue = false;
+    }
+        
+    $scope.checkbox = {
+        rememberMe : rememberMeValue
+    };
+    
+    if($window.localStorage["username"]!== undefined && rememberMeValue === true) {
+        $scope.user.email = $window.localStorage["username"];
+    }
 
     $scope.loginSubmitForm = function(form)
     {
@@ -12,7 +27,6 @@ function($scope, $state, UserService, $ionicHistory, $window) {
             .then(function(response) {
                 if (response.status === 200) {
                     //Should return a token
-                    console.log(response);
                     $window.localStorage['userID'] = response.data.userId;
                     $window.localStorage['token'] = response.data.id;
                     $ionicHistory.nextViewOptions({
@@ -20,6 +34,16 @@ function($scope, $state, UserService, $ionicHistory, $window) {
                       disableBack: true
                     });
                     $state.go('lobby');
+                    $window.localStorage["rememberMe"] = $scope.checkbox.rememberMe;
+                    if($scope.checkbox.rememberMe) {
+                        $window.localStorage["username"] = $scope.user.email;
+                    }else {
+                        delete $window.localStorage["username"];
+                        $scope.user.email = "";
+                    }
+                    $scope.user.password = "";
+                    form.$setPristine();
+
                 } else {
                     // invalid response
                     alert("Something went wrong, try again.");
@@ -35,7 +59,6 @@ function($scope, $state, UserService, $ionicHistory, $window) {
                 }else {
                     alert("Something went wrong, try again.");
                 }
-                
             });
         }
     };
@@ -56,9 +79,9 @@ function($scope, $state, UserService, $ionicHistory, $window) {
                 .then(function(response) {
                     if (response.status === 200) {
                         loginAfterRegister();
+                        form.$setPristine();
                     } else {
                         // invalid response
-                        console.log(response);
                         alert("Something went wrong, try again.");
                     }
                 }, function(response) {
@@ -96,11 +119,22 @@ function($scope, $state, UserService, $ionicHistory, $window) {
                 // invalid response
                 $state.go('landing');
             }
+            resetFields();
         }, function(response) {
             // something went wrong
-            console.log(response);
+            resetFields();
             $state.go('landing');
         });
+    }
+    
+    function resetFields()
+    {
+        $scope.user.email = "";
+        $scope.user.firstName = "";
+        $scope.user.lastName = "";
+        $scope.user.organization = "";
+        $scope.user.password = "";
+        $scope.repeatPassword.password = "";
     }
 }])
 
@@ -134,10 +168,8 @@ TKQuestionsService, UserService, $window, TKAnswersService) {
     };
     
     //Get Questions Initially if they are not already stored
-    if($window.localStorage.questions === undefined)
+    if(TKQuestionsService.questionsLength() === 0)
         getQuestions();
-    else
-        TKQuestionsService.setQuestions(JSON.parse($window.localStorage.questions));
         
     function getQuestions()
     {
@@ -146,7 +178,6 @@ TKQuestionsService, UserService, $window, TKAnswersService) {
             if (response.status === 200) {
                 var questions = response.data;
                 TKQuestionsService.setQuestions(questions);
-                $window.localStorage.questions = JSON.stringify(questions);
             } else {
                 // invalid response
                 confirmPrompt();
@@ -168,7 +199,7 @@ TKQuestionsService, UserService, $window, TKAnswersService) {
     
     $scope.takeTestButtonTapped = function()
     {
-        if($window.localStorage.questions === undefined)
+        if(TKQuestionsService.questionsLength() === 0)
             getQuestions();
         else {
             $state.go('test.detail',{testID:1});
@@ -184,7 +215,17 @@ TKAnswersService, ServerAnswersService, $ionicHistory, TKResultsButtonService) {
     var qNumber = $stateParams.testID;
     $scope.title = "Question #"+qNumber;
     
-    console.log(TKAnswersService.getAnswers());
+   // TKAnswersService.setLastQuestionNumber(qNumber);
+    
+    $scope.$on("$ionicView.beforeEnter", function(){
+        var lastQuestionNumber = TKAnswersService.getLastQuestionNumber();
+        if(parseInt(qNumber)<lastQuestionNumber)
+        {
+            TKAnswersService.setLastQuestionNumber(lastQuestionNumber-1);
+            TKAnswersService.eraseLastAnswer();
+        }
+        TKAnswersService.setLastQuestionNumber(qNumber);
+    });
     
     testInfo.forEach(function(infoDict)
     {

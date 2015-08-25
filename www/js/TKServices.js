@@ -19,10 +19,10 @@ angular.module('TKServicesModule', [])
         return results;
     };
     
-    service.getQuestionLenght = function()
+    service.questionsLength  = function()
     {
         return questions.length;
-    }
+    };
 })
 .service('TKAnswersService', function () {
     var service = this;
@@ -35,10 +35,22 @@ angular.module('TKServicesModule', [])
     };
     var answers = {};
     
+    var lastQuestionNumber = 0;
+    var categoriesStack = [];
+    
+    service.setLastQuestionNumber = function(qNumber){
+        lastQuestionNumber = parseInt(qNumber);
+    };
+    
+    service.getLastQuestionNumber = function() {
+        return lastQuestionNumber;  
+    };
+    
     service.saveAnswer = function(questionNumber, answerCategory, option)
     {
         answerCategories[answerCategory.toLowerCase()]++;
         answers[questionNumber] = option;
+        categoriesStack.push(answerCategory);
     };
     
     service.getAnswers = function()
@@ -58,6 +70,12 @@ angular.module('TKServicesModule', [])
                 answerCategories[property] = 0;
             }
         }
+        lastQuestionNumber = 0;
+    };
+    
+    service.eraseLastAnswer = function()
+    {
+        answerCategories[categoriesStack.pop().toLowerCase()]--;
     };
 })
 .service('TKResultsButtonService', function()
